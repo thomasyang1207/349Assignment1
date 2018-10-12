@@ -1,6 +1,7 @@
 from node import Node
 from collections import Counter
-import math
+from math import log2
+
 
 def ID3(examples, default):
   '''
@@ -11,7 +12,6 @@ def ID3(examples, default):
 
   returns tree root (Node)
   '''
-
   out = Node()
   out.label = default
   if len(examples) == 0: 
@@ -26,21 +26,40 @@ def ID3(examples, default):
     return out
 
   if len(targetCount) <= 1:
-    out.label = targetCount.elements()[0]
+    out.label = [i for i in targetCount.keys()][0]
     return out
 
   # calculate initial entropy
+  entropyFun = lambda ex, tC: sum([tC[key] / len(ex) * log2(len(ex) / tC[key]) for key in tC.keys()]);
+  initialEntropy = entropyFun(examples, targetCount)
 
-  # for each (remaining attribute), partition based on the attribute; 
+  # for each (remaining attribute), partition based on the attribute value; 
+  attributeMaps = {}
+  attributeEntropies = {}
+  for attr in [i for i in examples[0].keys() if i != 'Class']: 
+    attributeMaps[attr] = {}
+    for ex in examples: 
+      if ex[attr] in attributeMaps[attr]: attributeMaps[attr][ex[attr]].append(ex)
+      else: attributeMaps[attr][ex[attr]] = [ex]
 
-  # find the attribute that results in the greatest reduction in entropy
+    attributeClassCount = {}
+    for val, listOfExamples in attributeMaps[attr].items():
+      attributeClassCount[val] = Counter([ex['Class'] for ex in listOfExamples])
+    
+    attributeEntropies[attr] = sum([len(attributeMaps[attr][val]) / len(examples) * (initialEntropy - entropyFun(attributeMaps[attr][val], count)) for val,count in attributeClassCount.items()])
 
-  # change the label to None; change the attribute to the best attribute
+  bestAttr = max(attributeEntropies, key=attributeEntropies.get)
 
-  # Run ID3 on the partitioned examples, remembering to REMOVE from each, the attribute that has been split. For each new
-  # tree created, remember to add the children based on the label of the examples. 
+  out.label = None
+  out.attribute = bestAttr
+  for val,listOfExamples in attributeMaps[bestAttr].items():
+    for ex in listOfExamples:
+      del ex[bestAttr]
+    tempCount = Counter([ex['Class'] for ex in listOfExamples])
+    mode = max(tempCount, key=tempCount.get)
+    out.children[val] = ID3(listOfExamples, mode)
 
-  #return the created node
+  return out
 
   
   
@@ -69,3 +88,4 @@ def evaluate(node, example):
   Takes in a tree and one example.  Returns the Class value that the tree
   assigns to the example.
   '''
+  
