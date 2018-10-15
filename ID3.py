@@ -20,7 +20,6 @@ def ID3(examples, default):
   #Count of how many class types there are in total
   classification = [ex['Class'] for ex in examples]
   targetCount = Counter(classification)
-
   if len(examples[0]) <= 1:
     out.label = max(classification, key=targetCount.get)
     return out
@@ -52,6 +51,7 @@ def ID3(examples, default):
 
   out.label = None
   out.attribute = bestAttr
+  out.defaultChild = ID3([], max(classification, key=targetCount.get))
   for val,listOfExamples in attributeMaps[bestAttr].items():
     for ex in listOfExamples:
       del ex[bestAttr]
@@ -61,8 +61,6 @@ def ID3(examples, default):
 
   return out
 
-  
-  
 
 
 
@@ -72,8 +70,6 @@ def prune(node, examples):
   to improve accuracy on the validation data; the precise pruning strategy is up to you.
   '''
 
-  # Initial strategy: Reduced error pruning
-
   
 
 def test(node, examples):
@@ -81,11 +77,18 @@ def test(node, examples):
   Takes in a trained tree and a test set of examples. Returns the accuracy (fraction
   of examples the tree classifies correctly). 
   '''
+  return len([ex for ex in examples if ex['Class'] == evaluate(node, ex)]) / len(examples)
+
+
 
 
 def evaluate(node, example):
   '''
-  Takes in a tree and one example.  Returns the Class value that the tree
+  Takes in a tree and one example. Returns the Class value that the tree
   assigns to the example.
   '''
-  
+  curNode = node;
+  while curNode.label == None:
+    exampleValue = example.get(curNode.attribute,None)
+    curNode = curNode.children.get(exampleValue, curNode.defaultChild)
+  return curNode.label
