@@ -28,5 +28,3 @@ class Node:
 		self.children = {}
 		self.defaultChild = None
 		self.attribute = None #None for leaf; attribute for actual; Attribute is a string. 
-
-		self.misclassified = 0 #only used for testing... 

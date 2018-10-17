@@ -2,14 +2,12 @@ from node import Node
 from collections import Counter
 from math import log2
 
-
 def ID3(examples, default):
   '''
   Takes in an array of examples, and returns a tree (an instance of Node) 
   trained on the examples.  Each example is a dictionary of attribute:value pairs,
   and the target class variable is a special attribute with the name "Class".
   Any missing attributes are denoted with a value of "?"
-
   returns tree root (Node)
   '''
   out = Node()
@@ -58,17 +56,26 @@ def ID3(examples, default):
     tempCount = Counter([ex['Class'] for ex in listOfExamples])
     mode = max(tempCount, key=tempCount.get)
     out.children[val] = ID3(listOfExamples, mode)
-
+    for ex in listOfExamples:
+      ex[bestAttr] = val
   return out
-
-
-
 
 def prune(node, examples):
   '''
   Takes in a trained tree and a validation set of examples.  Prunes nodes in order
   to improve accuracy on the validation data; the precise pruning strategy is up to you.
   '''
+  if node.attribute != None and len(examples) != 0:
+    for val, child in node.children.items():
+      childExamples = [ex for ex in examples if ex[node.attribute] == val]
+      prune(child, childExamples)
+    labelCount = Counter([ex['Class'] for ex in examples])
+    mostCommonLabel = max(labelCount, key=labelCount.get)
+    if test(node, examples) < (labelCount[mostCommonLabel] / len(examples)):
+      node.attribute = None
+      node.label = mostCommonLabel
+      node.children.clear()
+      node.defaultChild = None
 
   
 
@@ -78,9 +85,6 @@ def test(node, examples):
   of examples the tree classifies correctly). 
   '''
   return len([ex for ex in examples if ex['Class'] == evaluate(node, ex)]) / len(examples)
-
-
-
 
 def evaluate(node, example):
   '''
